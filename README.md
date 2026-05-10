@@ -3,17 +3,23 @@
 ## 概要
 
 Docker上でNginxをReverse Proxyとして構築し、
-Apacheコンテナへ通信を転送する構成を作成した。
+Apacheコンテナへ通信を転送する環境を作成した。
+
+Docker Networkを使用することで、
+コンテナ名による名前解決を行い、
+NginxからApacheコンテナへ通信できることを確認した。
 
 ---
 
 # 構成図
 
+```text
 Browser
-↓
+   ↓
 Nginx (Reverse Proxy)
-↓
+   ↓
 Apache Container
+```
 
 ---
 
@@ -30,6 +36,9 @@ Apache Container
 
 ## 1. Docker Network作成
 
+コンテナ間通信を行うため、
+Docker Networkを作成した。
+
 ```bash
 docker network create my-network
 ```
@@ -44,12 +53,15 @@ docker network ls
 
 ## 2. Nginx設定ファイル作成
 
+NginxからApacheコンテナへ通信するため、
+Reverse Proxy設定を作成した。
+
 ```bash
 mkdir nginx
 touch nginx/default.conf
 ```
 
-### default.conf
+### nginx/default.conf
 
 ```nginx
 server {
@@ -64,6 +76,9 @@ server {
 ---
 
 ## 3. Nginxコンテナ起動
+
+bind mountを使用し、
+ホスト側の設定ファイルをコンテナへマウントした。
 
 ```bash
 docker run -d \
@@ -90,7 +105,17 @@ httpd
 ## 5. 動作確認
 
 ブラウザからアクセスし、
-Nginx経由でApacheの画面表示を確認。
+Nginx経由でApacheコンテナの画面表示を確認した。
+
+```text
+http://<Server-IP>
+```
+
+表示結果：
+
+```text
+It works!
+```
 
 ---
 
@@ -98,9 +123,10 @@ Nginx経由でApacheの画面表示を確認。
 
 - Reverse Proxyの基本構成
 - Docker Networkによるコンテナ間通信
-- コンテナ名で名前解決できる仕組み
+- コンテナ名による名前解決
 - bind mountの使い方
 - Nginx設定ファイルの反映方法
+- Nginxがリクエストを別コンテナへ転送する仕組み
 
 ---
 
@@ -110,16 +136,22 @@ Nginx経由でApacheの画面表示を確認。
 
 ### 原因
 
-`default.conf` がファイルではなくディレクトリになっていた。
+`default.conf` を誤ってディレクトリとして作成していた。
+
+そのため、
+Dockerが設定ファイルを正常にマウントできなかった。
 
 ### 対応
 
-ディレクトリ削除後、正しいファイルを作成。
+ディレクトリ削除後、
+`touch nginx/default.conf`
+で正しいファイルを作成し修正した。
 
 ---
 
 # 今後やること
 
 - Docker Compose化
-- 複数コンテナ管理
+- 複数コンテナの一括管理
 - Ansibleによる自動化
+- Kubernetesとの関連理解
